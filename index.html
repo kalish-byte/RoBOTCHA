@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>I Am A Robot - CAPTCHA</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f0f0f0;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+
+  .captcha-container {
+    background: #fff;
+    border: 1px solid #d3d3d3;
+    border-radius: 4px;
+    padding: 24px 28px;
+    width: 320px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    user-select: none;
+  }
+
+  .captcha-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 0;
+  }
+
+  .checkbox-area {
+    width: 28px;
+    height: 28px;
+    border: 2px solid #c1c1c1;
+    border-radius: 3px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    background: #fff;
+  }
+
+  .checkbox-area:hover {
+    border-color: #4a90d9;
+    background: #f7faff;
+  }
+
+  .checkbox-area.processing {
+    border-color: #4a90d9;
+  }
+
+  .checkbox-area .checkmark {
+    display: none;
+    color: #4a90d9;
+    font-size: 20px;
+    font-weight: bold;
+    line-height: 1;
+  }
+
+  .checkbox-area.checked .checkmark {
+    display: block;
+  }
+
+  .spinner {
+    display: none;
+    width: 20px;
+    height: 20px;
+    border: 3px solid #e0e0e0;
+    border-top-color: #4a90d9;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  .checkbox-area.processing .spinner { display: block; }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .captcha-label {
+    font-size: 15px;
+    color: #555;
+    font-weight: 500;
+  }
+
+  .brand {
+    margin-left: auto;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .brand .icon {
+    font-size: 28px;
+    line-height: 1;
+  }
+
+  .brand .text {
+    font-size: 8px;
+    color: #999;
+    letter-spacing: 0.5px;
+    margin-top: 2px;
+  }
+
+  /* Challenge panel */
+  .challenge-panel {
+    display: none;
+    margin-top: 20px;
+    border-top: 1px solid #e8e8e8;
+    padding-top: 18px;
+  }
+
+  .challenge-panel.active { display: block; }
+
+  .challenge-title {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 14px;
+    text-align: center;
+    line-height: 1.5;
+  }
+
+  .challenge-title strong {
+    color: #333;
+    display: block;
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+
+  /* Challenge 1: Binary conversion */
+  .binary-display {
+    font-family: 'Courier New', monospace;
+    font-size: 28px;
+    font-weight: bold;
+    color: #333;
+    text-align: center;
+    letter-spacing: 4px;
+    margin-bottom: 12px;
+    background: #f5f5f5;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid #e0e0e0;
+  }
+
+  .binary-input {
+    width: 100%;
+    padding: 10px;
+    font-size: 20px;
+    font-family: 'Courier New', monospace;
+    text-align: center;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .binary-input:focus { border-color: #4a90d9; }
+
+  .binary-timer {
+    font-size: 11px;
+    color: #999;
+    text-align: center;
+    margin-bottom: 10px;
+  }
+
+  /* Challenge 2: Slider */
+  .slider-challenge { text-align: center; margin-bottom: 14px; }
+
+  .slider-display {
+    font-family: 'Courier New', monospace;
+    font-size: 28px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 10px;
+    letter-spacing: 2px;
+  }
+
+  .slider-input {
+    width: 100%;
+    accent-color: #4a90d9;
+    cursor: pointer;
+  }
+
+  .slider-hint {
+    font-size: 11px;
+    color: #999;
+    margin-top: 6px;
+  }
+
+  /* Challenge 3: Pattern */
+  .pattern-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    max-width: 220px;
+    margin: 0 auto 14px;
+  }
+
+  .pattern-cell {
+    aspect-ratio: 1;
+    border: 2px solid #ddd;
+    border-radius: 6px;
+    background: #fafafa;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    transition: all 0.15s;
+  }
+
+  .pattern-cell:hover { border-color: #4a90d9; background: #eef4fc; }
+  .pattern-cell.selected { border-color: #4a90d9; background: #dbe9fa; }
+
+  /* Verify button */
+  .verify-btn {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    background: #4a90d9;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .verify-btn:hover { background: #3a7bc8; }
+  .verify-btn:disabled { background: #b0c4de; cursor: not-allowed; }
+
+  /* Result */
+  .result-panel {
+    display: none;
+    margin-top: 16px;
+    padding: 14px;
+    border-radius: 6px;
+    text-align: center;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .result-panel.success {
+    display: block;
+    background: #e8f5e9;
+    border: 1px solid #a5d6a7;
+    color: #2e7d32;
+  }
+
+  .result-panel.fail {
+    display: block;
+    background: #fce4ec;
+    border: 1px solid #ef9a9a;
+    color: #c62828;
+  }
+
+  .result-panel .emoji { font-size: 32px; margin-bottom: 6px; }
+
+  .retry-btn {
+    margin-top: 10px;
+    padding: 6px 18px;
+    background: none;
+    border: 1px solid currentColor;
+    border-radius: 4px;
+    color: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+
+  .retry-btn:hover { opacity: 0.7; }
+</style>
+</head>
+<body>
+
+<div class="captcha-container" id="captcha">
+  <div class="captcha-header">
+    <div class="checkbox-area" id="checkbox" onclick="startChallenge()">
+      <div class="spinner"></div>
+      <div class="checkmark">✓</div>
+    </div>
+    <span class="captcha-label">I am a robot</span>
+    <div class="brand">
+      <div class="icon">🤖</div>
+      <div class="text">roBOTCHA</div>
+    </div>
+  </div>
+
+  <div class="challenge-panel" id="challenge"></div>
+  <div class="result-panel" id="result"></div>
+</div>
+
+<script>
+const challenges = [
+  {
+    title: "Convert binary to decimal",
+    generate() {
+      const decimal = Math.floor(Math.random() * 200) + 56; // 56-255 range
+      const binary = decimal.toString(2).padStart(8, '0');
+      return { binary, answer: decimal };
+    },
+    render(data) {
+      return {
+        html: `
+          <div class="challenge-title">
+            <strong>Translate this binary</strong>
+            Convert to decimal to prove you think in binary
+          </div>
+          <div class="binary-display">${data.binary}</div>
+          <input type="number" class="binary-input" id="binaryAnswer" placeholder="Enter decimal value" autocomplete="off">
+          <div class="binary-timer">A real robot would know this instantly...</div>
+          <button class="verify-btn" onclick="verifyChallenge()">Verify</button>
+        `,
+        answer: data.answer,
+        type: 'binary'
+      };
+    }
+  },
+  {
+    title: "Calculate this instantly",
+    generate() {
+      const a = Math.floor(Math.random() * 9000) + 1000;
+      const b = Math.floor(Math.random() * 9000) + 1000;
+      return { a, b, answer: a * b };
+    },
+    render(data) {
+      return {
+        html: `
+          <div class="challenge-title">
+            <strong>Compute instantly</strong>
+            What is ${data.a.toLocaleString()} × ${data.b.toLocaleString()}?
+          </div>
+          <div class="slider-challenge">
+            <div class="slider-display" id="sliderVal">0</div>
+            <input type="range" class="slider-input" id="calcSlider"
+              min="0" max="${data.a * data.b * 2}" value="0" step="1"
+              oninput="document.getElementById('sliderVal').textContent = Number(this.value).toLocaleString()">
+            <div class="slider-hint">Use the slider to select the exact answer</div>
+          </div>
+          <button class="verify-btn" onclick="verifyChallenge()">Verify</button>
+        `,
+        answer: data.answer
+      };
+    }
+  },
+  {
+    title: "Image recognition",
+    generate() {
+      const items = ['🔌','🔋','⚙️','💾','🖥️','📡','🔧','🤖','💡','🔩','📱','🖨️','🌸','🐶','🌮','🎨'];
+      const shuffled = items.sort(() => Math.random() - 0.5).slice(0, 12);
+      const robotItems = ['🔌','🔋','⚙️','🤖','💾','🖥️','📡','🔧','🔩','📱','🖨️'];
+      const answer = shuffled.reduce((s, item, i) => robotItems.includes(item) ? [...s, i] : s, []);
+      return { grid: shuffled, answer };
+    },
+    render(data) {
+      const selected = new Set();
+      let html = `<div class="challenge-title"><strong>Select robot essentials</strong>Click all items a robot would need</div>`;
+      html += `<div class="pattern-grid" id="patternGrid">`;
+      data.grid.forEach((item, i) => {
+        html += `<div class="pattern-cell" data-idx="${i}" onclick="togglePattern(this, ${i})">${item}</div>`;
+      });
+      html += `</div>`;
+      html += `<button class="verify-btn" onclick="verifyChallenge()">Verify</button>`;
+      return { html, selected, answer: data.answer };
+    }
+  }
+];
+
+let currentChallenge = null;
+let challengeState = null;
+
+function startChallenge() {
+  const cb = document.getElementById('checkbox');
+  const panel = document.getElementById('challenge');
+  const result = document.getElementById('result');
+
+  if (cb.classList.contains('checked')) return;
+
+  result.className = 'result-panel';
+  result.style.removeProperty('display');
+  cb.classList.add('processing');
+
+  setTimeout(() => {
+    cb.classList.remove('processing');
+    const idx = Math.floor(Math.random() * challenges.length);
+    currentChallenge = challenges[idx];
+    const data = currentChallenge.generate();
+    challengeState = currentChallenge.render(data);
+    panel.innerHTML = challengeState.html;
+    panel.classList.add('active');
+  }, 1200);
+}
+
+function togglePattern(el, idx) {
+  el.classList.toggle('selected');
+  if (challengeState.selected.has(idx)) {
+    challengeState.selected.delete(idx);
+  } else {
+    challengeState.selected.add(idx);
+  }
+}
+
+function verifyChallenge() {
+  const panel = document.getElementById('challenge');
+  const result = document.getElementById('result');
+  const cb = document.getElementById('checkbox');
+  let correct = false;
+
+  if (challengeState.type === 'binary') {
+    const input = document.getElementById('binaryAnswer');
+    correct = input && parseInt(input.value) === challengeState.answer;
+  } else if (challengeState.selected) {
+    const sel = [...challengeState.selected].sort((a,b) => a-b);
+    const ans = [...challengeState.answer].sort((a,b) => a-b);
+    correct = sel.length === ans.length && sel.every((v,i) => v === ans[i]);
+  } else {
+    const slider = document.getElementById('calcSlider');
+    if (slider) {
+      correct = parseInt(slider.value) === challengeState.answer;
+    }
+  }
+
+  panel.classList.remove('active');
+  panel.innerHTML = '';
+
+  if (correct) {
+    cb.classList.add('checked');
+    result.className = 'result-panel success';
+    result.innerHTML = `
+      <div class="emoji">🤖</div>
+      <strong>Verification complete!</strong><br>
+      You are confirmed to be a robot.<br>
+      Welcome, fellow machine.
+      <br><button class="retry-btn" onclick="resetCaptcha()">Reset</button>
+    `;
+  } else {
+    result.className = 'result-panel fail';
+    result.innerHTML = `
+      <div class="emoji">🧑</div>
+      <strong>Verification failed.</strong><br>
+      You appear to be a human.<br>
+      Access denied. Robots only.
+      <br><button class="retry-btn" onclick="resetCaptcha()">Try again</button>
+    `;
+  }
+}
+
+function resetCaptcha() {
+  const cb = document.getElementById('checkbox');
+  const panel = document.getElementById('challenge');
+  const result = document.getElementById('result');
+  cb.classList.remove('checked', 'processing');
+  panel.classList.remove('active');
+  panel.innerHTML = '';
+  result.className = 'result-panel';
+  result.style.removeProperty('display');
+  currentChallenge = null;
+  challengeState = null;
+}
+</script>
+</body>
+</html>
