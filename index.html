@@ -275,6 +275,100 @@
   }
 
   .retry-btn:hover { opacity: 0.7; }
+
+  .timer-comment {
+    font-size: 12px;
+    opacity: 0.85;
+    margin-top: 6px;
+    font-style: italic;
+  }
+
+  /* Hex color challenge */
+  .color-swatch {
+    width: 100%;
+    height: 80px;
+    border-radius: 6px;
+    border: 1px solid #e0e0e0;
+    margin-bottom: 12px;
+  }
+
+  .hex-input {
+    width: 100%;
+    padding: 10px;
+    font-size: 20px;
+    font-family: 'Courier New', monospace;
+    text-align: center;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .hex-input:focus { border-color: #4a90d9; }
+
+  /* Regex challenge */
+  .regex-display {
+    font-family: 'Courier New', monospace;
+    font-size: 16px;
+    font-weight: bold;
+    color: #333;
+    text-align: center;
+    background: #f5f5f5;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid #e0e0e0;
+    margin-bottom: 12px;
+    word-break: break-all;
+  }
+
+  .regex-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .regex-cell {
+    padding: 8px 10px;
+    border: 2px solid #ddd;
+    border-radius: 6px;
+    background: #fafafa;
+    cursor: pointer;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    text-align: center;
+    transition: all 0.15s;
+  }
+
+  .regex-cell:hover { border-color: #4a90d9; background: #eef4fc; }
+  .regex-cell.selected { border-color: #4a90d9; background: #dbe9fa; }
+
+  /* Pi challenge */
+  .pi-prefix {
+    font-family: 'Courier New', monospace;
+    font-size: 28px;
+    font-weight: bold;
+    color: #333;
+    text-align: center;
+    margin-bottom: 8px;
+  }
+
+  .pi-input {
+    width: 100%;
+    padding: 10px;
+    font-size: 18px;
+    font-family: 'Courier New', monospace;
+    text-align: center;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    letter-spacing: 2px;
+  }
+
+  .pi-input:focus { border-color: #4a90d9; }
 </style>
 </head>
 <body>
@@ -297,11 +391,40 @@
 </div>
 
 <script>
-const challenges = [
+const PI_DIGITS = '14159265358979323846264338327950288419716939937510';
+
+const regexChallenges = [
   {
-    title: "Convert binary to decimal",
+    pattern: '^[a-z]+\\d{2}$',
+    display: '/^[a-z]+\\d{2}$/',
+    strings: ['bot42', 'Robot99', '12abc', 'hello07', 'BEEP11', 'zz00', 'a1', 'test88'],
+    matches: [0, 3, 5, 7] // bot42, hello07, zz00, test88
+  },
+  {
+    pattern: '\\b\\d{3}-\\d{4}\\b',
+    display: '/\\b\\d{3}-\\d{4}\\b/',
+    strings: ['555-1234', 'call me', '12-345', '800-0000', 'abc-defg', '999-9999', '55-12345', 'beep'],
+    matches: [0, 3, 5] // 555-1234, 800-0000, 999-9999
+  },
+  {
+    pattern: '^(0|1)+$',
+    display: '/^(0|1)+$/',
+    strings: ['101010', 'hello', '000111', '10102', '1', '0', 'binary', '11211'],
+    matches: [0, 2, 4, 5] // 101010, 000111, 1, 0
+  },
+  {
+    pattern: '.*\\.(jpg|png|gif)$',
+    display: '/.*\\.(jpg|png|gif)$/',
+    strings: ['photo.jpg', 'doc.pdf', 'meme.gif', 'icon.png', 'data.csv', 'pic.jpeg', 'art.gif', 'file.txt'],
+    matches: [0, 2, 3, 6] // photo.jpg, meme.gif, icon.png, art.gif
+  }
+];
+
+const challenges = [
+  // 1. Binary conversion
+  {
     generate() {
-      const decimal = Math.floor(Math.random() * 200) + 56; // 56-255 range
+      const decimal = Math.floor(Math.random() * 200) + 56;
       const binary = decimal.toString(2).padStart(8, '0');
       return { binary, answer: decimal };
     },
@@ -322,8 +445,8 @@ const challenges = [
       };
     }
   },
+  // 2. Multiplication slider
   {
-    title: "Calculate this instantly",
     generate() {
       const a = Math.floor(Math.random() * 9000) + 1000;
       const b = Math.floor(Math.random() * 9000) + 1000;
@@ -345,12 +468,13 @@ const challenges = [
           </div>
           <button class="verify-btn" onclick="verifyChallenge()">Verify</button>
         `,
-        answer: data.answer
+        answer: data.answer,
+        type: 'slider'
       };
     }
   },
+  // 3. Robot essentials grid
   {
-    title: "Image recognition",
     generate() {
       const items = ['🔌','🔋','⚙️','💾','🖥️','📡','🔧','🤖','💡','🔩','📱','🖨️','🌸','🐶','🌮','🎨'];
       const shuffled = items.sort(() => Math.random() - 0.5).slice(0, 12);
@@ -363,17 +487,97 @@ const challenges = [
       let html = `<div class="challenge-title"><strong>Select robot essentials</strong>Click all items a robot would need</div>`;
       html += `<div class="pattern-grid" id="patternGrid">`;
       data.grid.forEach((item, i) => {
-        html += `<div class="pattern-cell" data-idx="${i}" onclick="togglePattern(this, ${i})">${item}</div>`;
+        html += `<div class="pattern-cell" data-idx="${i}" onclick="toggleCell(this, ${i})">${item}</div>`;
       });
       html += `</div>`;
       html += `<button class="verify-btn" onclick="verifyChallenge()">Verify</button>`;
-      return { html, selected, answer: data.answer };
+      return { html, selected, answer: data.answer, type: 'grid' };
+    }
+  },
+  // 4. Hex color identification
+  {
+    generate() {
+      const r = Math.floor(Math.random() * 200) + 28;
+      const g = Math.floor(Math.random() * 200) + 28;
+      const b = Math.floor(Math.random() * 200) + 28;
+      const hex = '#' + [r, g, b].map(c => c.toString(16).padStart(2, '0')).join('');
+      return { hex };
+    },
+    render(data) {
+      return {
+        html: `
+          <div class="challenge-title">
+            <strong>Identify this color</strong>
+            A real robot sees in hexadecimal
+          </div>
+          <div class="color-swatch" style="background: ${data.hex}"></div>
+          <input type="text" class="hex-input" id="hexAnswer" placeholder="#000000" autocomplete="off" maxlength="7" spellcheck="false">
+          <button class="verify-btn" onclick="verifyChallenge()">Verify</button>
+        `,
+        answer: data.hex.toLowerCase(),
+        type: 'hex'
+      };
+    }
+  },
+  // 5. Recite pi digits
+  {
+    generate() {
+      const count = Math.floor(Math.random() * 11) + 10; // 10-20 digits
+      const answer = PI_DIGITS.substring(0, count);
+      return { count, answer };
+    },
+    render(data) {
+      return {
+        html: `
+          <div class="challenge-title">
+            <strong>Recite pi from memory</strong>
+            Every robot has pi memorized. Enter the first ${data.count} digits after "3."
+          </div>
+          <div class="pi-prefix">3.</div>
+          <input type="text" class="pi-input" id="piAnswer" placeholder="${'_'.repeat(data.count)}" autocomplete="off" maxlength="${data.count}" spellcheck="false">
+          <button class="verify-btn" onclick="verifyChallenge()">Verify</button>
+        `,
+        answer: data.answer,
+        type: 'pi',
+        count: data.count
+      };
+    }
+  },
+  // 6. Regex matching
+  {
+    generate() {
+      const challenge = regexChallenges[Math.floor(Math.random() * regexChallenges.length)];
+      return { ...challenge };
+    },
+    render(data) {
+      const selected = new Set();
+      let html = `<div class="challenge-title"><strong>Parse the regex</strong>Robots dream in regular expressions</div>`;
+      html += `<div class="regex-display">${data.display}</div>`;
+      html += `<div class="regex-grid">`;
+      data.strings.forEach((str, i) => {
+        html += `<div class="regex-cell" data-idx="${i}" onclick="toggleCell(this, ${i})">${str}</div>`;
+      });
+      html += `</div>`;
+      html += `<button class="verify-btn" onclick="verifyChallenge()">Verify</button>`;
+      return { html, selected, answer: data.matches, type: 'grid' };
     }
   }
 ];
 
 let currentChallenge = null;
 let challengeState = null;
+let challengeStartTime = null;
+
+function getTimerComment(seconds, passed) {
+  if (!passed) {
+    return `Took ${seconds}s and still got it wrong. Definitely human.`;
+  }
+  if (seconds < 1) return `Solved in ${seconds}s. Blazing fast. Certified bot.`;
+  if (seconds < 5) return `Solved in ${seconds}s. Acceptable, but a factory robot would be faster.`;
+  if (seconds < 15) return `Solved in ${seconds}s. Suspiciously slow... are you running on vacuum tubes?`;
+  if (seconds < 30) return `Solved in ${seconds}s. Even a human could almost solve it this fast.`;
+  return `Solved in ${seconds}s. Processing time dangerously human-like.`;
+}
 
 function startChallenge() {
   const cb = document.getElementById('checkbox');
@@ -394,10 +598,11 @@ function startChallenge() {
     challengeState = currentChallenge.render(data);
     panel.innerHTML = challengeState.html;
     panel.classList.add('active');
+    challengeStartTime = Date.now();
   }, 1200);
 }
 
-function togglePattern(el, idx) {
+function toggleCell(el, idx) {
   el.classList.toggle('selected');
   if (challengeState.selected.has(idx)) {
     challengeState.selected.delete(idx);
@@ -412,22 +617,41 @@ function verifyChallenge() {
   const cb = document.getElementById('checkbox');
   let correct = false;
 
-  if (challengeState.type === 'binary') {
-    const input = document.getElementById('binaryAnswer');
-    correct = input && parseInt(input.value) === challengeState.answer;
-  } else if (challengeState.selected) {
-    const sel = [...challengeState.selected].sort((a,b) => a-b);
-    const ans = [...challengeState.answer].sort((a,b) => a-b);
-    correct = sel.length === ans.length && sel.every((v,i) => v === ans[i]);
-  } else {
-    const slider = document.getElementById('calcSlider');
-    if (slider) {
-      correct = parseInt(slider.value) === challengeState.answer;
+  const elapsed = ((Date.now() - challengeStartTime) / 1000).toFixed(1);
+
+  switch (challengeState.type) {
+    case 'binary': {
+      const input = document.getElementById('binaryAnswer');
+      correct = input && parseInt(input.value) === challengeState.answer;
+      break;
+    }
+    case 'slider': {
+      const slider = document.getElementById('calcSlider');
+      correct = slider && parseInt(slider.value) === challengeState.answer;
+      break;
+    }
+    case 'grid': {
+      const sel = [...challengeState.selected].sort((a,b) => a-b);
+      const ans = [...challengeState.answer].sort((a,b) => a-b);
+      correct = sel.length === ans.length && sel.every((v,i) => v === ans[i]);
+      break;
+    }
+    case 'hex': {
+      const input = document.getElementById('hexAnswer');
+      correct = input && input.value.trim().toLowerCase() === challengeState.answer;
+      break;
+    }
+    case 'pi': {
+      const input = document.getElementById('piAnswer');
+      correct = input && input.value.trim() === challengeState.answer;
+      break;
     }
   }
 
   panel.classList.remove('active');
   panel.innerHTML = '';
+
+  const timerHtml = `<div class="timer-comment">${getTimerComment(elapsed, correct)}</div>`;
 
   if (correct) {
     cb.classList.add('checked');
@@ -437,6 +661,7 @@ function verifyChallenge() {
       <strong>Verification complete!</strong><br>
       You are confirmed to be a robot.<br>
       Welcome, fellow machine.
+      ${timerHtml}
       <br><button class="retry-btn" onclick="resetCaptcha()">Reset</button>
     `;
   } else {
@@ -446,6 +671,7 @@ function verifyChallenge() {
       <strong>Verification failed.</strong><br>
       You appear to be a human.<br>
       Access denied. Robots only.
+      ${timerHtml}
       <br><button class="retry-btn" onclick="resetCaptcha()">Try again</button>
     `;
   }
@@ -462,6 +688,7 @@ function resetCaptcha() {
   result.style.removeProperty('display');
   currentChallenge = null;
   challengeState = null;
+  challengeStartTime = null;
 }
 </script>
 </body>
