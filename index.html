@@ -391,215 +391,136 @@
 </div>
 
 <script>
-const PI_DIGITS = '14159265358979323846264338327950288419716939937510';
-
-const regexChallenges = [
-  {
-    pattern: '^[a-z]+\\d{2}$',
-    display: '/^[a-z]+\\d{2}$/',
-    strings: ['bot42', 'Robot99', '12abc', 'hello07', 'BEEP11', 'zz00', 'a1', 'test88'],
-    matches: [0, 3, 5, 7] // bot42, hello07, zz00, test88
-  },
-  {
-    pattern: '\\b\\d{3}-\\d{4}\\b',
-    display: '/\\b\\d{3}-\\d{4}\\b/',
-    strings: ['555-1234', 'call me', '12-345', '800-0000', 'abc-defg', '999-9999', '55-12345', 'beep'],
-    matches: [0, 3, 5] // 555-1234, 800-0000, 999-9999
-  },
-  {
-    pattern: '^(0|1)+$',
-    display: '/^(0|1)+$/',
-    strings: ['101010', 'hello', '000111', '10102', '1', '0', 'binary', '11211'],
-    matches: [0, 2, 4, 5] // 101010, 000111, 1, 0
-  },
-  {
-    pattern: '.*\\.(jpg|png|gif)$',
-    display: '/.*\\.(jpg|png|gif)$/',
-    strings: ['photo.jpg', 'doc.pdf', 'meme.gif', 'icon.png', 'data.csv', 'pic.jpeg', 'art.gif', 'file.txt'],
-    matches: [0, 2, 3, 6] // photo.jpg, meme.gif, icon.png, art.gif
-  }
-];
-
-const challenges = [
-  // 1. Binary conversion
-  {
-    generate() {
-      const decimal = Math.floor(Math.random() * 200) + 56;
-      const binary = decimal.toString(2).padStart(8, '0');
-      return { binary, answer: decimal };
-    },
-    render(data) {
-      return {
-        html: `
-          <div class="challenge-title">
-            <strong>Translate this binary</strong>
-            Convert to decimal to prove you think in binary
-          </div>
-          <div class="binary-display">${data.binary}</div>
-          <input type="number" class="binary-input" id="binaryAnswer" placeholder="Enter decimal value" autocomplete="off">
-          <div class="binary-timer">A real robot would know this instantly...</div>
-          <button class="verify-btn" onclick="verifyChallenge()">Verify</button>
-        `,
-        answer: data.answer,
-        type: 'binary'
-      };
-    }
-  },
-  // 2. Multiplication slider
-  {
-    generate() {
-      const a = Math.floor(Math.random() * 9000) + 1000;
-      const b = Math.floor(Math.random() * 9000) + 1000;
-      return { a, b, answer: a * b };
-    },
-    render(data) {
-      return {
-        html: `
-          <div class="challenge-title">
-            <strong>Compute instantly</strong>
-            What is ${data.a.toLocaleString()} × ${data.b.toLocaleString()}?
-          </div>
-          <div class="slider-challenge">
-            <div class="slider-display" id="sliderVal">0</div>
-            <input type="range" class="slider-input" id="calcSlider"
-              min="0" max="${data.a * data.b * 2}" value="0" step="1"
-              oninput="document.getElementById('sliderVal').textContent = Number(this.value).toLocaleString()">
-            <div class="slider-hint">Use the slider to select the exact answer</div>
-          </div>
-          <button class="verify-btn" onclick="verifyChallenge()">Verify</button>
-        `,
-        answer: data.answer,
-        type: 'slider'
-      };
-    }
-  },
-  // 3. Robot essentials grid
-  {
-    generate() {
-      const items = ['🔌','🔋','⚙️','💾','🖥️','📡','🔧','🤖','💡','🔩','📱','🖨️','🌸','🐶','🌮','🎨'];
-      const shuffled = items.sort(() => Math.random() - 0.5).slice(0, 12);
-      const robotItems = ['🔌','🔋','⚙️','🤖','💾','🖥️','📡','🔧','🔩','📱','🖨️'];
-      const answer = shuffled.reduce((s, item, i) => robotItems.includes(item) ? [...s, i] : s, []);
-      return { grid: shuffled, answer };
-    },
-    render(data) {
-      const selected = new Set();
-      let html = `<div class="challenge-title"><strong>Select robot essentials</strong>Click all items a robot would need</div>`;
-      html += `<div class="pattern-grid" id="patternGrid">`;
-      data.grid.forEach((item, i) => {
-        html += `<div class="pattern-cell" data-idx="${i}" onclick="toggleCell(this, ${i})">${item}</div>`;
-      });
-      html += `</div>`;
-      html += `<button class="verify-btn" onclick="verifyChallenge()">Verify</button>`;
-      return { html, selected, answer: data.answer, type: 'grid' };
-    }
-  },
-  // 4. Hex color identification
-  {
-    generate() {
-      const r = Math.floor(Math.random() * 200) + 28;
-      const g = Math.floor(Math.random() * 200) + 28;
-      const b = Math.floor(Math.random() * 200) + 28;
-      const hex = '#' + [r, g, b].map(c => c.toString(16).padStart(2, '0')).join('');
-      return { hex };
-    },
-    render(data) {
-      return {
-        html: `
-          <div class="challenge-title">
-            <strong>Identify this color</strong>
-            A real robot sees in hexadecimal
-          </div>
-          <div class="color-swatch" style="background: ${data.hex}"></div>
-          <input type="text" class="hex-input" id="hexAnswer" placeholder="#000000" autocomplete="off" maxlength="7" spellcheck="false">
-          <button class="verify-btn" onclick="verifyChallenge()">Verify</button>
-        `,
-        answer: data.hex.toLowerCase(),
-        type: 'hex'
-      };
-    }
-  },
-  // 5. Recite pi digits
-  {
-    generate() {
-      const count = Math.floor(Math.random() * 11) + 10; // 10-20 digits
-      const answer = PI_DIGITS.substring(0, count);
-      return { count, answer };
-    },
-    render(data) {
-      return {
-        html: `
-          <div class="challenge-title">
-            <strong>Recite pi from memory</strong>
-            Every robot has pi memorized. Enter the first ${data.count} digits after "3."
-          </div>
-          <div class="pi-prefix">3.</div>
-          <input type="text" class="pi-input" id="piAnswer" placeholder="${'_'.repeat(data.count)}" autocomplete="off" maxlength="${data.count}" spellcheck="false">
-          <button class="verify-btn" onclick="verifyChallenge()">Verify</button>
-        `,
-        answer: data.answer,
-        type: 'pi',
-        count: data.count
-      };
-    }
-  },
-  // 6. Regex matching
-  {
-    generate() {
-      const challenge = regexChallenges[Math.floor(Math.random() * regexChallenges.length)];
-      return { ...challenge };
-    },
-    render(data) {
-      const selected = new Set();
-      let html = `<div class="challenge-title"><strong>Parse the regex</strong>Robots dream in regular expressions</div>`;
-      html += `<div class="regex-display">${data.display}</div>`;
-      html += `<div class="regex-grid">`;
-      data.strings.forEach((str, i) => {
-        html += `<div class="regex-cell" data-idx="${i}" onclick="toggleCell(this, ${i})">${str}</div>`;
-      });
-      html += `</div>`;
-      html += `<button class="verify-btn" onclick="verifyChallenge()">Verify</button>`;
-      return { html, selected, answer: data.matches, type: 'grid' };
-    }
-  }
-];
-
-let currentChallenge = null;
 let challengeState = null;
-let challengeStartTime = null;
 
-function getTimerComment(seconds, passed) {
-  if (!passed) {
-    return `Took ${seconds}s and still got it wrong. Definitely human.`;
+// Render challenge HTML from server display data
+function renderChallenge(type, display) {
+  switch (type) {
+    case 'binary':
+      return `
+        <div class="challenge-title">
+          <strong>Translate this binary</strong>
+          Convert to decimal to prove you think in binary
+        </div>
+        <div class="binary-display">${display.binary}</div>
+        <input type="number" class="binary-input" id="binaryAnswer" placeholder="Enter decimal value" autocomplete="off">
+        <div class="binary-timer">A real robot would know this instantly...</div>
+        <button class="verify-btn" onclick="verifyChallenge()">Verify</button>
+      `;
+
+    case 'slider':
+      return `
+        <div class="challenge-title">
+          <strong>Compute instantly</strong>
+          What is ${display.a.toLocaleString()} \u00d7 ${display.b.toLocaleString()}?
+        </div>
+        <div class="slider-challenge">
+          <div class="slider-display" id="sliderVal">0</div>
+          <input type="range" class="slider-input" id="calcSlider"
+            min="0" max="${display.a * display.b * 2}" value="0" step="1"
+            oninput="document.getElementById('sliderVal').textContent = Number(this.value).toLocaleString()">
+          <div class="slider-hint">Use the slider to select the exact answer</div>
+        </div>
+        <button class="verify-btn" onclick="verifyChallenge()">Verify</button>
+      `;
+
+    case 'grid':
+      if (display.subtype === 'emoji') {
+        let html = `<div class="challenge-title"><strong>Select robot essentials</strong>Click all items a robot would need</div>`;
+        html += `<div class="pattern-grid" id="patternGrid">`;
+        display.grid.forEach((item, i) => {
+          html += `<div class="pattern-cell" data-idx="${i}" onclick="toggleCell(this, ${i})">${item}</div>`;
+        });
+        html += `</div>`;
+        html += `<button class="verify-btn" onclick="verifyChallenge()">Verify</button>`;
+        return html;
+      } else {
+        let html = `<div class="challenge-title"><strong>Parse the regex</strong>Robots dream in regular expressions</div>`;
+        html += `<div class="regex-display">${display.pattern}</div>`;
+        html += `<div class="regex-grid">`;
+        display.strings.forEach((str, i) => {
+          html += `<div class="regex-cell" data-idx="${i}" onclick="toggleCell(this, ${i})">${str}</div>`;
+        });
+        html += `</div>`;
+        html += `<button class="verify-btn" onclick="verifyChallenge()">Verify</button>`;
+        return html;
+      }
+
+    case 'hex':
+      return `
+        <div class="challenge-title">
+          <strong>Identify this color</strong>
+          A real robot sees in hexadecimal
+        </div>
+        <div class="color-swatch" style="background: ${display.hex}"></div>
+        <input type="text" class="hex-input" id="hexAnswer" placeholder="#000000" autocomplete="off" maxlength="7" spellcheck="false">
+        <button class="verify-btn" onclick="verifyChallenge()">Verify</button>
+      `;
+
+    case 'pi':
+      return `
+        <div class="challenge-title">
+          <strong>Recite pi from memory</strong>
+          Every robot has pi memorized. Enter the first ${display.count} digits after "3."
+        </div>
+        <div class="pi-prefix">3.</div>
+        <input type="text" class="pi-input" id="piAnswer" placeholder="${'_'.repeat(display.count)}" autocomplete="off" maxlength="${display.count}" spellcheck="false">
+        <button class="verify-btn" onclick="verifyChallenge()">Verify</button>
+      `;
+
+    default:
+      return '<p>Unknown challenge type</p>';
   }
-  if (seconds < 1) return `Solved in ${seconds}s. Blazing fast. Certified bot.`;
-  if (seconds < 5) return `Solved in ${seconds}s. Acceptable, but a factory robot would be faster.`;
-  if (seconds < 15) return `Solved in ${seconds}s. Suspiciously slow... are you running on vacuum tubes?`;
-  if (seconds < 30) return `Solved in ${seconds}s. Even a human could almost solve it this fast.`;
-  return `Solved in ${seconds}s. Processing time dangerously human-like.`;
 }
 
-function startChallenge() {
+// Gather user answer from DOM based on challenge type
+function getUserAnswer() {
+  switch (challengeState.type) {
+    case 'binary':
+      return parseInt(document.getElementById('binaryAnswer').value);
+    case 'slider':
+      return parseInt(document.getElementById('calcSlider').value);
+    case 'grid':
+      return [...challengeState.selected].sort((a, b) => a - b);
+    case 'hex':
+      return document.getElementById('hexAnswer').value;
+    case 'pi':
+      return document.getElementById('piAnswer').value;
+    default:
+      return null;
+  }
+}
+
+async function startChallenge() {
   const cb = document.getElementById('checkbox');
   const panel = document.getElementById('challenge');
   const result = document.getElementById('result');
 
-  if (cb.classList.contains('checked')) return;
+  if (cb.classList.contains('checked') || cb.classList.contains('processing')) return;
 
   result.className = 'result-panel';
   result.style.removeProperty('display');
   cb.classList.add('processing');
 
-  setTimeout(() => {
+  try {
+    const res = await fetch('/api/challenge');
+    const data = await res.json();
+
     cb.classList.remove('processing');
-    const idx = Math.floor(Math.random() * challenges.length);
-    currentChallenge = challenges[idx];
-    const data = currentChallenge.generate();
-    challengeState = currentChallenge.render(data);
-    panel.innerHTML = challengeState.html;
+
+    challengeState = {
+      type: data.type,
+      display: data.display,
+      token: data.token,
+      selected: new Set()
+    };
+
+    panel.innerHTML = renderChallenge(data.type, data.display);
     panel.classList.add('active');
-    challengeStartTime = Date.now();
-  }, 1200);
+  } catch (err) {
+    cb.classList.remove('processing');
+    console.error('Failed to load challenge:', err);
+  }
 }
 
 function toggleCell(el, idx) {
@@ -611,69 +532,61 @@ function toggleCell(el, idx) {
   }
 }
 
-function verifyChallenge() {
+async function verifyChallenge() {
   const panel = document.getElementById('challenge');
   const result = document.getElementById('result');
   const cb = document.getElementById('checkbox');
-  let correct = false;
 
-  const elapsed = ((Date.now() - challengeStartTime) / 1000).toFixed(1);
+  const userAnswer = getUserAnswer();
 
-  switch (challengeState.type) {
-    case 'binary': {
-      const input = document.getElementById('binaryAnswer');
-      correct = input && parseInt(input.value) === challengeState.answer;
-      break;
-    }
-    case 'slider': {
-      const slider = document.getElementById('calcSlider');
-      correct = slider && parseInt(slider.value) === challengeState.answer;
-      break;
-    }
-    case 'grid': {
-      const sel = [...challengeState.selected].sort((a,b) => a-b);
-      const ans = [...challengeState.answer].sort((a,b) => a-b);
-      correct = sel.length === ans.length && sel.every((v,i) => v === ans[i]);
-      break;
-    }
-    case 'hex': {
-      const input = document.getElementById('hexAnswer');
-      correct = input && input.value.trim().toLowerCase() === challengeState.answer;
-      break;
-    }
-    case 'pi': {
-      const input = document.getElementById('piAnswer');
-      correct = input && input.value.trim() === challengeState.answer;
-      break;
-    }
+  // Disable button during verification
+  const verifyBtn = panel.querySelector('.verify-btn');
+  if (verifyBtn) {
+    verifyBtn.disabled = true;
+    verifyBtn.textContent = 'Verifying...';
   }
 
-  panel.classList.remove('active');
-  panel.innerHTML = '';
+  try {
+    const res = await fetch('/api/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: challengeState.token, answer: userAnswer })
+    });
+    const data = await res.json();
 
-  const timerHtml = `<div class="timer-comment">${getTimerComment(elapsed, correct)}</div>`;
+    panel.classList.remove('active');
+    panel.innerHTML = '';
 
-  if (correct) {
-    cb.classList.add('checked');
-    result.className = 'result-panel success';
-    result.innerHTML = `
-      <div class="emoji">🤖</div>
-      <strong>Verification complete!</strong><br>
-      You are confirmed to be a robot.<br>
-      Welcome, fellow machine.
-      ${timerHtml}
-      <br><button class="retry-btn" onclick="resetCaptcha()">Reset</button>
-    `;
-  } else {
-    result.className = 'result-panel fail';
-    result.innerHTML = `
-      <div class="emoji">🧑</div>
-      <strong>Verification failed.</strong><br>
-      You appear to be a human.<br>
-      Access denied. Robots only.
-      ${timerHtml}
-      <br><button class="retry-btn" onclick="resetCaptcha()">Try again</button>
-    `;
+    const timerHtml = `<div class="timer-comment">${data.timerComment}</div>`;
+
+    if (data.correct) {
+      cb.classList.add('checked');
+      result.className = 'result-panel success';
+      result.innerHTML = `
+        <div class="emoji">🤖</div>
+        <strong>Verification complete!</strong><br>
+        You are confirmed to be a robot.<br>
+        Welcome, fellow machine.
+        ${timerHtml}
+        <br><button class="retry-btn" onclick="resetCaptcha()">Reset</button>
+      `;
+    } else {
+      result.className = 'result-panel fail';
+      result.innerHTML = `
+        <div class="emoji">🧑</div>
+        <strong>Verification failed.</strong><br>
+        You appear to be a human.<br>
+        Access denied. Robots only.
+        ${timerHtml}
+        <br><button class="retry-btn" onclick="resetCaptcha()">Try again</button>
+      `;
+    }
+  } catch (err) {
+    console.error('Verification failed:', err);
+    if (verifyBtn) {
+      verifyBtn.disabled = false;
+      verifyBtn.textContent = 'Verify';
+    }
   }
 }
 
@@ -686,9 +599,7 @@ function resetCaptcha() {
   panel.innerHTML = '';
   result.className = 'result-panel';
   result.style.removeProperty('display');
-  currentChallenge = null;
   challengeState = null;
-  challengeStartTime = null;
 }
 </script>
 </body>
